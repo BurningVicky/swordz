@@ -22,12 +22,11 @@ public class PlayerMovement : MonoBehaviour
     private float dashTimer = 0f;
     private float dashCooldownTimer = 0f;
     private Vector3 dashDirection;
-	
-	public Transform cameraHolder;
 
-	
-	[SerializeField] 
-    private float extraGravity = 20f;  // ⬅️ AQUI!
+    public Transform cameraHolder;
+
+    [SerializeField]
+    private float extraGravity = 20f;
 
     void Start()
     {
@@ -38,8 +37,6 @@ public class PlayerMovement : MonoBehaviour
     {
         // Atualiza isGrounded
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayer);
-
-		Debug.Log("isGrounded: " + isGrounded);
 
         if (!isDashing)
         {
@@ -71,26 +68,41 @@ public class PlayerMovement : MonoBehaviour
             if (dashTimer <= 0f)
                 EndDash();
         }
+
+        // Sempre alinha o Player ao eixo Y da câmera
+        Vector3 cameraForward = cameraHolder.forward;
+        cameraForward.y = 0f;
+
+        if (cameraForward != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(cameraForward);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+        }
     }
 
     void FixedUpdate()
-{
-    if (!isDashing)
     {
-        if (moveInput.magnitude > 0)
+        if (!isDashing)
         {
-            Vector3 force = transform.TransformDirection(moveInput) * moveSpeed;
-            rb.AddForce(force, ForceMode.Force);
+            if (moveInput.magnitude > 0)
+            {
+                Vector3 moveDirection = cameraHolder.forward * moveInput.z + cameraHolder.right * moveInput.x;
+                moveDirection.y = 0f;
+
+                Vector3 force = moveDirection.normalized * moveSpeed;
+                rb.AddForce(force, ForceMode.Force);
+            }
         }
+        else
+        {
+            Vector3 dashForce = dashDirection.normalized * (dashDistance / dashDuration);
+            rb.AddForce(new Vector3(dashForce.x, 0, dashForce.z), ForceMode.Impulse);
+        }
+
+        ApplyExtraGravity();
     }
-    else
-    {
-        Vector3 dashForce = dashDirection.normalized * (dashDistance / dashDuration);
-        rb.AddForce(new Vector3(dashForce.x, 0, dashForce.z), ForceMode.Impulse);
-    }
-	ApplyExtraGravity(); // Gravidade extra apenas enquanto no ar
-}
-	void ApplyExtraGravity()
+
+    void ApplyExtraGravity()
     {
         if (!isGrounded)
         {
@@ -98,21 +110,19 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-
     void StartDash()
     {
         isDashing = true;
         dashTimer = dashDuration;
         dashCooldownTimer = dashCooldown;
 
-        dashDirection = transform.TransformDirection(moveInput);
+        Vector3 moveDirection = cameraHolder.forward * moveInput.z + cameraHolder.right * moveInput.x;
+        dashDirection = moveDirection.normalized;
     }
 
     void EndDash()
     {
         isDashing = false;
-
-     
     }
 
     void OnDrawGizmosSelected()

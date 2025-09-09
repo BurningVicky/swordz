@@ -5,11 +5,10 @@ using UnityEngine;
 public class CameraController : MonoBehaviour
 {
     public float mouseSensitivity = 100f;
-    public Transform cameraTransform; // Arm ou MainCamera
+    public Transform cameraTransform; // O "braço" ou a MainCamera
     public Transform player; // Referência ao Player
 
     private float xRotation = 0f;
-    private float yRotation = 0f;
 
     void Start()
     {
@@ -22,17 +21,16 @@ public class CameraController : MonoBehaviour
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
 
-        yRotation += mouseX;
+        // Rotação horizontal (Y) → aplica no holder inteiro
+        transform.Rotate(Vector3.up * mouseX);
+
+        // Rotação vertical (X) → aplica só na câmera (localRotation)
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -45f, 45f);
 
-        // Rotação do holder em Y
-        transform.rotation = Quaternion.Euler(0f, yRotation, 0f);
-
-        // Rotação do braço em X
         cameraTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
 
-        // *** Aqui segue a posição do player ***
+        // CameraHolder segue o player na posição
         transform.position = player.position;
     }
 }
